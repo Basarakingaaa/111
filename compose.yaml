@@ -19,11 +19,15 @@ services:
 
   web:
     image: ${WEB_IMAGE:?set WEB_IMAGE}
+    build:
+      context: ./apps/web
     restart: unless-stopped
     networks: [edge]
 
   core:
     image: ${CORE_IMAGE:?set CORE_IMAGE}
+    build:
+      context: ./services/core
     restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: production
@@ -48,13 +52,15 @@ services:
       APP_LOG_LEVEL: ${APP_LOG_LEVEL:?set APP_LOG_LEVEL}
       APP_TIME_ZONE: ${APP_TIME_ZONE:?set APP_TIME_ZONE}
       UPLOAD_MAX_BYTES: ${UPLOAD_MAX_BYTES:?set UPLOAD_MAX_BYTES}
-    networks: [backend]
+    networks: [backend, egress]
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
 
   agent:
     image: ${AGENT_IMAGE:?set AGENT_IMAGE}
+    build:
+      context: ./services/agent
     restart: unless-stopped
     environment:
       CORE_URL: http://core:8080
@@ -68,11 +74,15 @@ services:
       MODEL_NAME: ${MODEL_NAME:?set MODEL_NAME}
       AGENT_MAX_CONTEXT_TOKENS: ${AGENT_MAX_CONTEXT_TOKENS:?set AGENT_MAX_CONTEXT_TOKENS}
       APP_LOG_LEVEL: ${APP_LOG_LEVEL:?set APP_LOG_LEVEL}
-    networks: [edge, backend]
-    depends_on: [core, elasticsearch]
+    networks: [backend, egress]
+    depends_on:
+      core: { condition: service_started }
+      elasticsearch: { condition: service_healthy }
 
   indexer:
     image: ${INDEXER_IMAGE:?set INDEXER_IMAGE}
+    build:
+      context: ./services/indexer
     restart: unless-stopped
     environment:
       CORE_URL: http://core:8080
@@ -90,8 +100,11 @@ services:
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:?set EMBEDDING_MODEL}
       INDEXER_WORKERS: ${INDEXER_WORKERS:?set INDEXER_WORKERS}
       APP_LOG_LEVEL: ${APP_LOG_LEVEL:?set APP_LOG_LEVEL}
-    networks: [backend]
-    depends_on: [core, elasticsearch, minio]
+    networks: [backend, egress]
+    depends_on:
+      core: { condition: service_started }
+      elasticsearch: { condition: service_healthy }
+      minio-init: { condition: service_completed_successfully }
 
   postgres:
     image: ${POSTGRES_IMAGE:?set POSTGRES_IMAGE}
@@ -157,8 +170,25 @@ services:
       timeout: 5s
       retries: 10
 
+  minio-init:
+    image: ${MINIO_MC_IMAGE:?set MINIO_MC_IMAGE}
+    restart: "no"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD" &&
+        mc mb --ignore-existing "local/$$MINIO_BUCKET"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${MINIO_BUCKET:?set MINIO_BUCKET}
+    networks: [backend]
+    depends_on:
+      minio: { condition: service_healthy }
+
 networks:
   edge:
+  egress:
   backend:
     internal: true
 

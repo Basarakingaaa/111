@@ -13,3 +13,4 @@ apps/web/src/*.js
 .vscode/
 *.log
 data/
+deploy/remote.env
