@@ -1,0 +1,54 @@
+server:
+  port: 8080
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        secure: true
+        same-site: lax
+
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: ${GITHUB_OAUTH_CLIENT_ID}
+            client-secret: ${GITHUB_OAUTH_CLIENT_SECRET}
+            scope: read:user,user:email
+  servlet:
+    multipart:
+      max-file-size: ${UPLOAD_MAX_BYTES:104857600}
+      max-request-size: ${UPLOAD_MAX_BYTES:104857600}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+logging:
+  level:
+    root: ${APP_LOG_LEVEL:INFO}
+
+app:
+  config-encryption-key: ${APP_CONFIG_ENCRYPTION_KEY}
+  bootstrap-admin-github-login: ${APP_BOOTSTRAP_ADMIN_GITHUB_LOGIN}
+  agent-token: ${CORE_AGENT_TOKEN}
+  indexer-token: ${CORE_INDEXER_TOKEN}
+  agent-url: ${AGENT_URL:http://agent:8000}

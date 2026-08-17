@@ -1,0 +1,6 @@
+.action-card { display:flex; justify-content:space-between; align-items:start; border:1px solid #e1e8e3; border-radius:9px; padding:13px; margin:10px 0; }
+.action-card p { margin:5px 0 0; color:#68756f; }
+.members { margin-top:22px; }
+.member-form { display:grid; grid-template-columns:1fr 1fr auto; align-items:end; gap:14px; }
+.member-form label { margin:0; }
+@media (max-width:900px) { .member-form { grid-template-columns:1fr; } }
