@@ -1,5 +1,14 @@
 $ErrorActionPreference = 'Stop'
 
+function Get-DeployVariable {
+    param([Parameter(Mandatory)][string]$Name)
+    $value = [Environment]::GetEnvironmentVariable($Name, 'Process')
+    if ([string]::IsNullOrWhiteSpace($value)) {
+        $value = [Environment]::GetEnvironmentVariable($Name, 'User')
+    }
+    return $value
+}
+
 $required = @(
     'DEPLOY_HOST',
     'DEPLOY_USER',
@@ -9,18 +18,21 @@ $required = @(
 )
 
 foreach ($name in $required) {
-    if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+    if ([string]::IsNullOrWhiteSpace((Get-DeployVariable $name))) {
         throw "Required environment variable is missing: $name"
     }
 }
 
-$deployHost = $env:DEPLOY_HOST
-$deployUser = $env:DEPLOY_USER
-$deployPath = $env:DEPLOY_PATH
-$repository = $env:DEPLOY_REPOSITORY
-$branch = if ($env:DEPLOY_BRANCH) { $env:DEPLOY_BRANCH } else { 'main' }
-$port = if ($env:DEPLOY_PORT) { [int]$env:DEPLOY_PORT } else { 22 }
-$appEnvFile = (Resolve-Path -LiteralPath $env:DEPLOY_APP_ENV_FILE).Path
+$deployHost = Get-DeployVariable 'DEPLOY_HOST'
+$deployUser = Get-DeployVariable 'DEPLOY_USER'
+$deployPath = Get-DeployVariable 'DEPLOY_PATH'
+$repository = Get-DeployVariable 'DEPLOY_REPOSITORY'
+$configuredBranch = Get-DeployVariable 'DEPLOY_BRANCH'
+$configuredPort = Get-DeployVariable 'DEPLOY_PORT'
+$configuredKeyFile = Get-DeployVariable 'DEPLOY_SSH_KEY_FILE'
+$branch = if ($configuredBranch) { $configuredBranch } else { 'main' }
+$port = if ($configuredPort) { [int]$configuredPort } else { 22 }
+$appEnvFile = (Resolve-Path -LiteralPath (Get-DeployVariable 'DEPLOY_APP_ENV_FILE')).Path
 
 if ($deployHost -notmatch '^[A-Za-z0-9.-]+$') { throw 'DEPLOY_HOST is invalid' }
 if ($deployUser -notmatch '^[A-Za-z0-9._-]+$') { throw 'DEPLOY_USER is invalid' }
@@ -33,8 +45,8 @@ if ($port -lt 1 -or $port -gt 65535) { throw 'DEPLOY_PORT is invalid' }
 
 $sshArgs = @('-p', "$port", '-o', 'StrictHostKeyChecking=accept-new')
 $scpArgs = @('-P', "$port", '-o', 'StrictHostKeyChecking=accept-new')
-if ($env:DEPLOY_SSH_KEY_FILE) {
-    $keyFile = (Resolve-Path -LiteralPath $env:DEPLOY_SSH_KEY_FILE).Path
+if ($configuredKeyFile) {
+    $keyFile = (Resolve-Path -LiteralPath $configuredKeyFile).Path
     $sshArgs += @('-i', $keyFile)
     $scpArgs += @('-i', $keyFile)
 }

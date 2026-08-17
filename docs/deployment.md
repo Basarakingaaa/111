@@ -19,7 +19,7 @@
 
 ## Deploy from a Windows operator workstation
 
-The workstation needs OpenSSH (`ssh` and `scp`). Set every connection input through environment variables; use `deploy/remote.env.example` as the list of required values. The populated application environment file must remain outside the repository.
+The workstation needs OpenSSH (`ssh` and `scp`). Set every connection input through process-level or Windows user-level environment variables; use `deploy/remote.env.example` as the list of required values. The populated application environment file must remain outside the repository.
 
 ```powershell
 $env:DEPLOY_HOST = "server.example.com"
