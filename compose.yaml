@@ -53,6 +53,7 @@ services:
       APP_LOG_LEVEL: ${APP_LOG_LEVEL:?set APP_LOG_LEVEL}
       APP_TIME_ZONE: ${APP_TIME_ZONE:?set APP_TIME_ZONE}
       UPLOAD_MAX_BYTES: ${UPLOAD_MAX_BYTES:?set UPLOAD_MAX_BYTES}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:?set SESSION_COOKIE_SECURE}
     networks: [backend, egress]
     depends_on:
       postgres: { condition: service_healthy }

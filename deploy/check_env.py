@@ -7,7 +7,7 @@ import re
 import sys
 
 REQUIRED = {
-    "COMPOSE_PROJECT_NAME", "PUBLIC_DOMAIN", "PUBLIC_SCHEME", "TLS_EMAIL", "HTTP_PORT", "HTTPS_PORT",
+    "COMPOSE_PROJECT_NAME", "PUBLIC_DOMAIN", "PUBLIC_SCHEME", "TLS_EMAIL", "SESSION_COOKIE_SECURE", "HTTP_PORT", "HTTPS_PORT",
     "WEB_IMAGE", "CORE_IMAGE", "AGENT_IMAGE", "INDEXER_IMAGE", "POSTGRES_IMAGE",
     "REDIS_IMAGE", "ELASTICSEARCH_IMAGE", "MINIO_IMAGE", "MINIO_MC_IMAGE", "CADDY_IMAGE",
     "POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD",
@@ -59,6 +59,10 @@ def main() -> int:
         errors.append("PUBLIC_DOMAIN is invalid")
     if values.get("PUBLIC_SCHEME") not in {"http", "https"}:
         errors.append("PUBLIC_SCHEME must be http or https")
+    if values.get("SESSION_COOKIE_SECURE") not in {"true", "false"}:
+        errors.append("SESSION_COOKIE_SECURE must be true or false")
+    if values.get("PUBLIC_SCHEME") == "https" and values.get("SESSION_COOKIE_SECURE") != "true":
+        errors.append("SESSION_COOKIE_SECURE must be true when PUBLIC_SCHEME is https")
     for key in ("HTTP_PORT", "HTTPS_PORT", "UPLOAD_MAX_BYTES", "AGENT_MAX_CONTEXT_TOKENS", "INDEXER_WORKERS"):
         try:
             if int(values.get(key, "0")) <= 0: errors.append(f"{key} must be a positive integer")

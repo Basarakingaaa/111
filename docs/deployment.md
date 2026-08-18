@@ -6,6 +6,7 @@
 - 16 CPU cores, 64 GB RAM, 1 TB NVMe SSD recommended
 - Docker Engine with Compose plugin
 - A DNS record for `PUBLIC_DOMAIN` when using `PUBLIC_SCHEME=https`; an IP address is sufficient for an initial `http` deployment
+- Set `SESSION_COOKIE_SECURE=false` only for an initial HTTP deployment; restore it to `true` with HTTPS
 - Off-host backup destination
 
 ## Prepare
