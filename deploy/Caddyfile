@@ -2,7 +2,7 @@
     email {$TLS_EMAIL}
 }
 
-{$PUBLIC_DOMAIN} {
+{$PUBLIC_SCHEME}://{$PUBLIC_DOMAIN} {
     encode zstd gzip
 
     handle /api/* {

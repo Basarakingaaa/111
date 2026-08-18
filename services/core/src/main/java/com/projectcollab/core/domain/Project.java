@@ -11,6 +11,7 @@ public class Project {
     @Column(nullable=false) public String name;
     @Column(nullable=false, unique=true) public String code;
     public String description;
+    @Column(name="manager_id") public UUID managerId;
     @Column(name="created_by", nullable=false) public UUID createdBy;
     @Column(name="created_at", nullable=false) public Instant createdAt;
     public boolean archived;
@@ -22,4 +23,3 @@ public class Project {
         this.createdAt = Instant.now(); this.archived = false;
     }
 }
-

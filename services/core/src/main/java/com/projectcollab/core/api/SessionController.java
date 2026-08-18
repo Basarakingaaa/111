@@ -16,7 +16,7 @@ public class SessionController {
     @GetMapping("/me")
     Me me(Authentication authentication) {
         UserAccount u = currentUsers.require(authentication);
-        return new Me(u.id.toString(), u.githubLogin, u.displayName, u.email, u.systemRole.name(), u.active);
+        return new Me(u.id.toString(), u.loginName(), u.authType.name(), u.displayName, u.email, u.systemRole.name(), u.active);
     }
 
     @GetMapping("/csrf")
@@ -24,6 +24,5 @@ public class SessionController {
         return Map.of("headerName", token.getHeaderName(), "token", token.getToken());
     }
 
-    record Me(String id, String githubLogin, String displayName, String email, String systemRole, boolean active) {}
+    record Me(String id, String loginName, String authType, String displayName, String email, String systemRole, boolean active) {}
 }
-

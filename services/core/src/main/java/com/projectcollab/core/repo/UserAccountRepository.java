@@ -5,5 +5,5 @@ import java.util.*;
 public interface UserAccountRepository extends JpaRepository<UserAccount, UUID> {
     Optional<UserAccount> findByGithubId(Long githubId);
     Optional<UserAccount> findByGithubLoginIgnoreCase(String githubLogin);
+    Optional<UserAccount> findByUsernameIgnoreCase(String username);
 }
-

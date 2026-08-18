@@ -3,28 +3,57 @@
 ## Host baseline
 
 - Ubuntu Server 24.04 LTS
-- 16 CPU cores, 64 GB RAM, 1 TB NVMe SSD recommended
+- 8 CPU cores, 32 GB RAM, and 200 GB SSD for a pilot deployment; 16 CPU cores, 64 GB RAM, and 1 TB NVMe SSD recommended for heavier production use
 - Docker Engine with Compose plugin
-- DNS record for `PUBLIC_DOMAIN`
+- A DNS record for `PUBLIC_DOMAIN` when using `PUBLIC_SCHEME=https`; an IP address is sufficient for an initial `http` deployment
+- Set `SESSION_COOKIE_SECURE=false` only for an initial HTTP deployment; restore it to `true` with HTTPS
+- `PYPI_INDEX_URL` controls the Python package source used during image builds; use a trusted nearby mirror when the default index is slow
+- Allow inbound TCP 80 for an initial HTTP deployment and TCP 443 for HTTPS; restrict SSH port 22 to trusted operator addresses
 - Off-host backup destination
 
 ## Prepare
 
-1. Create a GitHub OAuth application. Set its callback URL to `https://<domain>/login/oauth2/code/github`.
+1. Create a GitHub OAuth application. Set its callback URL to `<scheme>://<host>/login/oauth2/code/github`, matching `PUBLIC_SCHEME` and `PUBLIC_DOMAIN` exactly.
 2. Copy `.env.example` to `.env` on the server.
 3. Generate unique passwords and service tokens. Generate the encryption key with `openssl rand -base64 32`.
 4. Set `APP_BOOTSTRAP_ADMIN_GITHUB_LOGIN` to the exact initial administrator login.
 5. Validate without printing secrets: `python3 deploy/check_env.py .env`.
-6. Run `docker compose config --quiet`.
-7. Start with `docker compose up -d`.
+6. Deploy with `bash deploy/server-deploy.sh`. It validates configuration, builds the four application images, creates the MinIO bucket, and starts the stack.
+
+## Deploy from a Windows operator workstation
+
+The workstation needs OpenSSH (`ssh` and `scp`). Set every connection input through process-level or Windows user-level environment variables; use `deploy/remote.env.example` as the list of required values. The populated application environment file must remain outside the repository.
+
+```powershell
+$env:DEPLOY_HOST = "server.example.com"
+$env:DEPLOY_PORT = "22"
+$env:DEPLOY_USER = "ubuntu"
+$env:DEPLOY_SSH_KEY_FILE = "C:\secure\server_ed25519"
+$env:DEPLOY_PATH = "/home/ubuntu/project-collaboration"
+$env:DEPLOY_REPOSITORY = "https://github.com/Basarakingaaa/111.git"
+$env:DEPLOY_BRANCH = "main"
+$env:DEPLOY_APP_ENV_FILE = "C:\secure\project-collaboration.env"
+
+powershell -ExecutionPolicy Bypass -File deploy/remote-deploy.ps1
+```
+
+The remote user must already be able to run Docker and create `DEPLOY_PATH`. The script never puts SSH credentials or application secrets in Git.
 
 ## First login
 
-The configured bootstrap GitHub user becomes `SUPER_ADMIN`. Every other first-time GitHub user is persisted as `PENDING` and sees only the waiting-for-approval page. A system administrator activates the account and assigns a system level. A project owner then assigns a project role.
+The configured bootstrap GitHub user becomes `SUPER_ADMIN`. Every other first-time GitHub user is persisted as `PENDING` and sees only the waiting-for-approval page.
+
+After the bootstrap login, a system administrator can create a local username/password account from **用户分级**, choose its system role, and activate it. Local passwords are stored only as BCrypt hashes and can be reset by an administrator; they are never displayed after creation. GitHub and local accounts use the same project membership model. A project owner, project manager, or system administrator assigns the account an `OWNER`, `MANAGER`, `DEVELOPER`, `TESTER`, `OPERATIONS`, or `VIEWER` project role.
 
 ## Runtime resources
 
 After login, use **资源配置** to create servers, databases, APIs, GitHub Apps, Slack Apps, SMTP accounts, model providers, storage, or CI/CD resources. Account, password/secret, and token fields are encrypted. The list API exposes only presence flags. Authorized reveal operations are audited.
+
+For automatic outbound notifications:
+
+- Create a `SLACK_APP` resource and store the complete Incoming Webhook URL in the encrypted **Token** field. The endpoint field is supported only for non-secret relay URLs.
+- Create an `SMTP` resource with the mail server in **Host**, TLS/STARTTLS port in **Port**, sender email in **Account**, and SMTP/app password in encrypted **Secret**.
+- Resources scoped to a project apply to that project; system-level resources act as a fallback. In-app notifications remain available even when no outbound channel is configured or an external provider is unavailable.
 
 ## Backups
 
@@ -32,4 +61,3 @@ After login, use **资源配置** to create servers, databases, APIs, GitHub App
 - MinIO: versioning and replication to an off-host S3-compatible target.
 - Elasticsearch: daily snapshot to off-host storage; it must also remain rebuildable.
 - `.env`: encrypted administrative backup separate from application data.
-

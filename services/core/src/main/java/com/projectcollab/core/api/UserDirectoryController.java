@@ -13,8 +13,8 @@ public class UserDirectoryController {
     @GetMapping("/directory")
     List<DirectoryUser> directory() {
         return users.findAll().stream().filter(u -> u.active)
-            .sorted(Comparator.comparing(u -> u.githubLogin.toLowerCase()))
-            .map(u -> new DirectoryUser(u.id, u.githubLogin, u.displayName, u.email, u.systemRole.name(), true)).toList();
+            .sorted(Comparator.comparing(u -> u.loginName().toLowerCase()))
+            .map(u -> new DirectoryUser(u.id, u.loginName(), u.authType.name(), u.displayName, u.email, u.systemRole.name(), true)).toList();
     }
-    record DirectoryUser(UUID id, String githubLogin, String displayName, String email, String systemRole, boolean active) {}
+    record DirectoryUser(UUID id, String loginName, String authType, String displayName, String email, String systemRole, boolean active) {}
 }

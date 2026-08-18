@@ -18,7 +18,6 @@ class AgentRunRequest(BaseModel):
     actor_id: str
     project_id: str
     message: str = Field(min_length=1, max_length=20000)
-    requested_agent: AgentName | None = None
     context: dict[str, Any] = Field(default_factory=dict)
     evidence: list[Evidence] = Field(default_factory=list)
 
@@ -29,13 +28,20 @@ class ProposedAction(BaseModel):
     risk: Literal["read", "low", "high"] = "read"
     requires_approval: bool = False
 
+class DocumentLink(BaseModel):
+    document_id: str
+    name: str
+    url: str
+    content_type: str | None = None
+    size_bytes: int = 0
+
 class AgentResult(BaseModel):
     run_id: str
     agent: AgentName
     summary: str
     findings: list[str] = Field(default_factory=list)
     proposed_actions: list[ProposedAction] = Field(default_factory=list)
+    downloads: list[DocumentLink] = Field(default_factory=list)
     evidence: list[Evidence] = Field(default_factory=list)
     assumptions: list[str] = Field(default_factory=list)
     needs_human_input: bool = False
-
