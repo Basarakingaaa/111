@@ -7,6 +7,7 @@
 - Docker Engine with Compose plugin
 - A DNS record for `PUBLIC_DOMAIN` when using `PUBLIC_SCHEME=https`; an IP address is sufficient for an initial `http` deployment
 - Set `SESSION_COOKIE_SECURE=false` only for an initial HTTP deployment; restore it to `true` with HTTPS
+- `PYPI_INDEX_URL` controls the Python package source used during image builds; use a trusted nearby mirror when the default index is slow
 - Off-host backup destination
 
 ## Prepare

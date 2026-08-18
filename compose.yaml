@@ -63,6 +63,8 @@ services:
     image: ${AGENT_IMAGE:?set AGENT_IMAGE}
     build:
       context: ./services/agent
+      args:
+        PIP_INDEX_URL: ${PYPI_INDEX_URL:?set PYPI_INDEX_URL}
     restart: unless-stopped
     environment:
       CORE_URL: http://core:8080
@@ -85,6 +87,8 @@ services:
     image: ${INDEXER_IMAGE:?set INDEXER_IMAGE}
     build:
       context: ./services/indexer
+      args:
+        PIP_INDEX_URL: ${PYPI_INDEX_URL:?set PYPI_INDEX_URL}
     restart: unless-stopped
     environment:
       CORE_URL: http://core:8080
