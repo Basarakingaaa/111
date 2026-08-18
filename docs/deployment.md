@@ -5,7 +5,7 @@
 - Ubuntu Server 24.04 LTS
 - 16 CPU cores, 64 GB RAM, 1 TB NVMe SSD recommended
 - Docker Engine with Compose plugin
-- DNS record for `PUBLIC_DOMAIN`
+- A DNS record for `PUBLIC_DOMAIN` when using `PUBLIC_SCHEME=https`; an IP address is sufficient for an initial `http` deployment
 - Off-host backup destination
 
 ## Prepare

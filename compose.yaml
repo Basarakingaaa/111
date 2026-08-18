@@ -6,6 +6,7 @@ services:
     restart: unless-stopped
     environment:
       PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:?set PUBLIC_DOMAIN}
+      PUBLIC_SCHEME: ${PUBLIC_SCHEME:?set PUBLIC_SCHEME}
       TLS_EMAIL: ${TLS_EMAIL:?set TLS_EMAIL}
     ports:
       - "${HTTP_PORT:?set HTTP_PORT}:80"

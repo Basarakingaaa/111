@@ -7,7 +7,7 @@ import re
 import sys
 
 REQUIRED = {
-    "COMPOSE_PROJECT_NAME", "PUBLIC_DOMAIN", "TLS_EMAIL", "HTTP_PORT", "HTTPS_PORT",
+    "COMPOSE_PROJECT_NAME", "PUBLIC_DOMAIN", "PUBLIC_SCHEME", "TLS_EMAIL", "HTTP_PORT", "HTTPS_PORT",
     "WEB_IMAGE", "CORE_IMAGE", "AGENT_IMAGE", "INDEXER_IMAGE", "POSTGRES_IMAGE",
     "REDIS_IMAGE", "ELASTICSEARCH_IMAGE", "MINIO_IMAGE", "MINIO_MC_IMAGE", "CADDY_IMAGE",
     "POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD",
@@ -57,6 +57,8 @@ def main() -> int:
         if len(keys)>1: errors.append("credentials must be unique: " + ", ".join(sorted(keys)))
     if not re.fullmatch(r"[A-Za-z0-9.-]+", values.get("PUBLIC_DOMAIN", "")):
         errors.append("PUBLIC_DOMAIN is invalid")
+    if values.get("PUBLIC_SCHEME") not in {"http", "https"}:
+        errors.append("PUBLIC_SCHEME must be http or https")
     for key in ("HTTP_PORT", "HTTPS_PORT", "UPLOAD_MAX_BYTES", "AGENT_MAX_CONTEXT_TOKENS", "INDEXER_WORKERS"):
         try:
             if int(values.get(key, "0")) <= 0: errors.append(f"{key} must be a positive integer")
