@@ -25,6 +25,16 @@ services:
     restart: unless-stopped
     networks: [edge]
 
+  document-init:
+    image: ${CORE_IMAGE:?set CORE_IMAGE}
+    network_mode: none
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["mkdir -p /data/documents && chown -R 10001:10001 /data/documents"]
+    restart: "no"
+    volumes:
+      - document_data:/data/documents
+
   core:
     image: ${CORE_IMAGE:?set CORE_IMAGE}
     build:
@@ -53,11 +63,19 @@ services:
       APP_LOG_LEVEL: ${APP_LOG_LEVEL:?set APP_LOG_LEVEL}
       APP_TIME_ZONE: ${APP_TIME_ZONE:?set APP_TIME_ZONE}
       UPLOAD_MAX_BYTES: ${UPLOAD_MAX_BYTES:?set UPLOAD_MAX_BYTES}
+      DOCUMENT_STORAGE_PATH: /data/documents
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:?set SESSION_COOKIE_SECURE}
+      # Bind the Spring Boot property directly as well. This prevents the
+      # servlet container from emitting a Secure session cookie during the
+      # supported initial HTTP/IP deployment.
+      SERVER_SERVLET_SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:?set SESSION_COOKIE_SECURE}
+    volumes:
+      - document_data:/data/documents
     networks: [backend, egress]
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
+      document-init: { condition: service_completed_successfully }
 
   agent:
     image: ${AGENT_IMAGE:?set AGENT_IMAGE}
@@ -205,3 +223,4 @@ volumes:
   redis_data:
   elasticsearch_data:
   minio_data:
+  document_data:

@@ -2,6 +2,7 @@ package com.projectcollab.core.api;
 
 import com.projectcollab.core.domain.*;
 import com.projectcollab.core.service.*;
+import com.projectcollab.core.repo.UserAccountRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -16,8 +17,10 @@ public class ResourceController {
     private final ResourceService resources;
     private final CurrentUserService currentUsers;
     private final AuditService audit;
-    public ResourceController(ResourceService resources, CurrentUserService currentUsers, AuditService audit) {
-        this.resources = resources; this.currentUsers = currentUsers; this.audit = audit;
+    private final UserAccountRepository users;
+    public ResourceController(ResourceService resources, CurrentUserService currentUsers, AuditService audit,
+                              UserAccountRepository users) {
+        this.resources = resources; this.currentUsers = currentUsers; this.audit = audit; this.users = users;
     }
 
     @GetMapping
@@ -52,6 +55,17 @@ public class ResourceController {
         return revealed;
     }
 
+    @GetMapping("/{id}/versions")
+    List<ResourceVersionView> versions(@PathVariable UUID id, Authentication auth) {
+        return resources.history(currentUsers.require(auth), id).stream().map(revision -> {
+            UserAccount actor = users.findById(revision.changedBy).orElse(null);
+            return new ResourceVersionView(revision.resourceVersion, revision.name, revision.resourceType,
+                revision.environment, revision.endpoint, revision.host, revision.port,
+                revision.accountCiphertext != null, revision.secretCiphertext != null, revision.tokenCiphertext != null,
+                revision.notes, revision.changedBy, actor == null ? null : actor.loginName(), revision.changedAt);
+        }).toList();
+    }
+
     public record ResourceRequest(UUID projectId, @NotBlank String name, @NotNull ResourceType resourceType,
         String environment, @Size(max=2048) String endpoint, @Size(max=512) String host,
         @Min(1) @Max(65535) Integer port, String account, String secret, String token, String notes) {
@@ -66,5 +80,8 @@ public class ResourceController {
             r.environment, r.endpoint, r.host, r.port, r.accountCiphertext != null,
             r.secretCiphertext != null, r.tokenCiphertext != null, r.notes, r.updatedAt, r.version); }
     }
-}
 
+    public record ResourceVersionView(long version, String name, ResourceType resourceType, String environment,
+        String endpoint, String host, Integer port, boolean hasAccount, boolean hasSecret, boolean hasToken,
+        String notes, UUID changedBy, String changedByLogin, Instant changedAt) {}
+}

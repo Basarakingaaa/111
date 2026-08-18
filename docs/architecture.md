@@ -7,7 +7,7 @@ The MVP has four application services and five infrastructure services:
 | Unit | Responsibility |
 |---|---|
 | Web Console | Browser UI; never receives infrastructure database credentials |
-| Core Service | Authoritative business state, GitHub login, authorization, approval, runtime resources, and audit |
+| Core Service | Authoritative business state, GitHub and local-account login, authorization, approval, runtime resources, and audit |
 | Agent Service | Seven logical agents; reachable only by Core Service |
 | Indexing Service | Incremental parsing, stable chunking, embeddings, and Elasticsearch projections |
 | PostgreSQL | Authoritative transactional data |
@@ -32,12 +32,22 @@ System roles:
 - `SYSTEM_ADMIN`: user approval and system administration, except super-admin management.
 - `STANDARD`: ordinary authenticated user; project access still requires membership.
 - `READ_ONLY`: cannot create projects or mutate managed project data.
-- `PENDING`: registered by GitHub login but awaiting approval.
+- `PENDING`: registered but awaiting approval.
+
+Authentication identities:
+
+- `GITHUB`: OAuth identity tied to an immutable GitHub numeric ID.
+- `LOCAL`: administrator-created username with a BCrypt password hash.
+- Authentication type does not grant access by itself; system role, active status, and project membership remain authoritative.
 
 Project roles:
 
 - `OWNER`, `MANAGER`, `DEVELOPER`, `TESTER`, `OPERATIONS`, `VIEWER`.
-- Project owners and managers assign members.
+- System administrators create projects, appoint the single primary project manager, and add, update, or remove project members.
+- A user may manage multiple projects; each project has one primary project manager.
+- The primary project manager creates and manages multiple tasks and assigns each task to one responsible member.
+- A task responsible member updates only that task's progress and may create multiple material requests linked to the task.
+- Each material request is assigned to one material provider, such as a business analyst providing requirement analysis to development. The provider updates only delivery status and delivery notes.
 - Owners, managers, and operations users manage runtime resources and reveal their secrets.
 - Every endpoint performs server-side authorization; hiding a button is not treated as security.
 
@@ -47,5 +57,8 @@ Bootstrap configuration is supplied exclusively through environment variables be
 
 ## Agent boundary
 
-The Agent Service contains coordinator, document, task-progress, project-knowledge, environment-deployment, notification, and permission-audit agents. Every agent has a tool allowlist. Agents initially produce read steps or approval-required drafts; they never directly commit a high-impact operation.
+The Agent Service contains coordinator, document, task-progress, project-knowledge, environment-deployment, notification, and permission-audit agents. Users never select one manually: the coordinator scores the request intent and routes it to the appropriate specialist. Core Service supplies an authorization-filtered, point-in-time business snapshot and evidence for the selected project, including task and material counts and status distribution. This allows factual questions such as “how many tasks does this project have?” to be answered from PostgreSQL state instead of model memory. Every agent has a tool allowlist. Agents initially produce read steps or approval-required drafts; they never directly commit a high-impact operation.
 
+## Notification boundary
+
+Task and document-request creation, reassignment, status changes, submission, and completion emit persisted per-user notifications. In-app delivery is authoritative and cannot be disabled. Slack and email are best-effort secondary channels configured as encrypted runtime resources; external delivery failure is recorded on the notification and never rolls back the task or document transaction.

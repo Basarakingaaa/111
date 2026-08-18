@@ -1,5 +1,6 @@
 package com.projectcollab.core.security;
 
+import com.projectcollab.core.domain.AuthType;
 import com.projectcollab.core.domain.SystemRole;
 import com.projectcollab.core.domain.UserAccount;
 import com.projectcollab.core.repo.UserAccountRepository;
@@ -40,6 +41,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 isBootstrapAdmin ? SystemRole.SUPER_ADMIN : SystemRole.PENDING,
                 isBootstrapAdmin));
         user.githubLogin = login;
+        user.authType = AuthType.GITHUB;
         user.displayName = name;
         user.email = email;
         user.lastLoginAt = Instant.now();

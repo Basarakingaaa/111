@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from .models import AgentName, AgentRunRequest, AgentResult, ProposedAction
+from .models import AgentName, AgentRunRequest, AgentResult, ProposedAction, DocumentLink
 
 @dataclass(frozen=True)
 class AgentDefinition:
@@ -12,6 +12,64 @@ class AgentDefinition:
     def run(self, request: AgentRunRequest) -> AgentResult:
         findings: list[str] = []
         actions: list[ProposedAction] = []
+        downloads: list[DocumentLink] = []
+        project = request.context.get("project", {})
+        project_name = project.get("name", "当前项目") if isinstance(project, dict) else "当前项目"
+        task_stats = request.context.get("task_stats", {})
+        document_stats = request.context.get("document_stats", {})
+        project_document_stats = request.context.get("project_document_stats", {})
+        project_documents = request.context.get("project_documents", [])
+        message = request.message.lower()
+
+        if self.name == "task-progress" and isinstance(task_stats, dict):
+            total = int(task_stats.get("total", 0))
+            summary = f"项目“{project_name}”当前共有 {total} 个任务。"
+            by_status = task_stats.get("by_status", {})
+            if isinstance(by_status, dict):
+                active_statuses = [f"{status} {count} 个" for status, count in by_status.items() if int(count) > 0]
+                if active_statuses:
+                    findings.append("状态分布：" + "、".join(active_statuses) + "。")
+            findings.append(f"已分配 {int(task_stats.get('assigned', 0))} 个，未分配 {int(task_stats.get('unassigned', 0))} 个。")
+        elif self.name == "document" and isinstance(project_documents, list) and any(
+            word in message for word in ("下载", "访问", "文件", "项目文档", "有哪些文档", "文档列表", "查看文档")
+        ):
+            total = int(project_document_stats.get("total", len(project_documents))) if isinstance(project_document_stats, dict) else len(project_documents)
+            summary = f"项目“{project_name}”当前共有 {total} 个可访问的项目文档。"
+            for document in project_documents[:20]:
+                if not isinstance(document, dict):
+                    continue
+                name = str(document.get("display_name") or document.get("original_name") or "未命名文档")
+                downloads.append(DocumentLink(
+                    document_id=str(document.get("id", "")), name=name,
+                    url=str(document.get("download_url", "")),
+                    content_type=str(document.get("content_type", "application/octet-stream")),
+                    size_bytes=int(document.get("size_bytes", 0))))
+                description = document.get("description")
+                excerpt = document.get("text_excerpt")
+                detail = f"{name}（{int(document.get('size_bytes', 0))} 字节）"
+                if description:
+                    detail += f"：{description}"
+                findings.append(detail)
+                if excerpt and (name.lower() in message or "内容" in message or "访问" in message):
+                    findings.append(f"{name} 内容摘录：{str(excerpt)[:1000]}")
+            if not project_documents:
+                findings.append("当前项目尚未上传文档，可由有文档上传权限的项目成员在“项目文档”页面添加。")
+        elif self.name == "document" and isinstance(document_stats, dict):
+            total = int(document_stats.get("total", 0))
+            summary = f"项目“{project_name}”当前共有 {total} 个材料需求。"
+            by_status = document_stats.get("by_status", {})
+            if isinstance(by_status, dict):
+                active_statuses = [f"{status} {count} 个" for status, count in by_status.items() if int(count) > 0]
+                if active_statuses:
+                    findings.append("状态分布：" + "、".join(active_statuses) + "。")
+        elif self.name == "coordinator":
+            task_total = int(task_stats.get("total", 0)) if isinstance(task_stats, dict) else 0
+            document_total = int(document_stats.get("total", 0)) if isinstance(document_stats, dict) else 0
+            summary = f"项目“{project_name}”当前有 {task_total} 个任务、{document_total} 个材料需求。"
+            findings.append(f"项目成员 {int(request.context.get('member_count', 0))} 人，已登记资源 {int(request.context.get('resource_count', 0))} 项。")
+        else:
+            summary = f"{self.title}已读取项目“{project_name}”的实时业务数据并完成分析。"
+
         if not request.evidence:
             findings.append("当前请求没有附带可引用证据，需要先读取项目事实。")
             actions.append(ProposedAction(
@@ -26,8 +84,8 @@ class AgentDefinition:
             actions.append(ProposedAction(tool=draft_tools[0], reason="先生成可审阅草稿，不直接改变项目事实", parameters={"project_id":request.project_id}, risk="low", requires_approval=True))
         return AgentResult(
             run_id=request.run_id, agent=self.name,
-            summary=f"{self.title}已接收请求，准备在授权范围内处理。",
-            findings=findings, proposed_actions=actions, evidence=request.evidence,
+            summary=summary,
+            findings=findings, proposed_actions=actions, downloads=downloads, evidence=request.evidence,
             assumptions=[], needs_human_input=False)
 
 AGENTS: dict[AgentName, AgentDefinition] = {
@@ -64,8 +122,6 @@ AGENTS: dict[AgentName, AgentDefinition] = {
 class Coordinator:
     @staticmethod
     def select(request: AgentRunRequest) -> AgentDefinition:
-        if request.requested_agent:
-            return AGENTS[request.requested_agent]
         message = request.message.lower()
         scores = {name: sum(1 for word in agent.keywords if word in message) for name, agent in AGENTS.items() if name != "coordinator"}
         best = max(scores, key=scores.get)

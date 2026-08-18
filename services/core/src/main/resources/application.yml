@@ -52,3 +52,4 @@ app:
   agent-token: ${CORE_AGENT_TOKEN}
   indexer-token: ${CORE_INDEXER_TOKEN}
   agent-url: ${AGENT_URL:http://agent:8000}
+  document-storage-path: ${DOCUMENT_STORAGE_PATH:/data/documents}

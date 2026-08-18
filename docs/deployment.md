@@ -41,11 +41,19 @@ The remote user must already be able to run Docker and create `DEPLOY_PATH`. The
 
 ## First login
 
-The configured bootstrap GitHub user becomes `SUPER_ADMIN`. Every other first-time GitHub user is persisted as `PENDING` and sees only the waiting-for-approval page. A system administrator activates the account and assigns a system level. A project owner then assigns a project role.
+The configured bootstrap GitHub user becomes `SUPER_ADMIN`. Every other first-time GitHub user is persisted as `PENDING` and sees only the waiting-for-approval page.
+
+After the bootstrap login, a system administrator can create a local username/password account from **用户分级**, choose its system role, and activate it. Local passwords are stored only as BCrypt hashes and can be reset by an administrator; they are never displayed after creation. GitHub and local accounts use the same project membership model. A project owner, project manager, or system administrator assigns the account an `OWNER`, `MANAGER`, `DEVELOPER`, `TESTER`, `OPERATIONS`, or `VIEWER` project role.
 
 ## Runtime resources
 
 After login, use **资源配置** to create servers, databases, APIs, GitHub Apps, Slack Apps, SMTP accounts, model providers, storage, or CI/CD resources. Account, password/secret, and token fields are encrypted. The list API exposes only presence flags. Authorized reveal operations are audited.
+
+For automatic outbound notifications:
+
+- Create a `SLACK_APP` resource and store the complete Incoming Webhook URL in the encrypted **Token** field. The endpoint field is supported only for non-secret relay URLs.
+- Create an `SMTP` resource with the mail server in **Host**, TLS/STARTTLS port in **Port**, sender email in **Account**, and SMTP/app password in encrypted **Secret**.
+- Resources scoped to a project apply to that project; system-level resources act as a fallback. In-app notifications remain available even when no outbound channel is configured or an external provider is unavailable.
 
 ## Backups
 
