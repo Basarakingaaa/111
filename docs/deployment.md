@@ -3,16 +3,17 @@
 ## Host baseline
 
 - Ubuntu Server 24.04 LTS
-- 16 CPU cores, 64 GB RAM, 1 TB NVMe SSD recommended
+- 8 CPU cores, 32 GB RAM, and 200 GB SSD for a pilot deployment; 16 CPU cores, 64 GB RAM, and 1 TB NVMe SSD recommended for heavier production use
 - Docker Engine with Compose plugin
 - A DNS record for `PUBLIC_DOMAIN` when using `PUBLIC_SCHEME=https`; an IP address is sufficient for an initial `http` deployment
 - Set `SESSION_COOKIE_SECURE=false` only for an initial HTTP deployment; restore it to `true` with HTTPS
 - `PYPI_INDEX_URL` controls the Python package source used during image builds; use a trusted nearby mirror when the default index is slow
+- Allow inbound TCP 80 for an initial HTTP deployment and TCP 443 for HTTPS; restrict SSH port 22 to trusted operator addresses
 - Off-host backup destination
 
 ## Prepare
 
-1. Create a GitHub OAuth application. Set its callback URL to `https://<domain>/login/oauth2/code/github`.
+1. Create a GitHub OAuth application. Set its callback URL to `<scheme>://<host>/login/oauth2/code/github`, matching `PUBLIC_SCHEME` and `PUBLIC_DOMAIN` exactly.
 2. Copy `.env.example` to `.env` on the server.
 3. Generate unique passwords and service tokens. Generate the encryption key with `openssl rand -base64 32`.
 4. Set `APP_BOOTSTRAP_ADMIN_GITHUB_LOGIN` to the exact initial administrator login.
